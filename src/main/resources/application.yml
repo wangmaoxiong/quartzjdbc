@@ -1,0 +1,42 @@
+spring:
+
+  #数据源配置
+  datasource:
+    username: sa
+    password: 123456
+    #持久化到本地磁盘，使用混合模式，默认情况下，H2 只运行一个进程访问，true 表示可以多个进程可以访问同一个数据库
+    url: jdbc:h2:~/test;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    #使用内存模式，h2 数据只在内存中，应用关闭时，数据自动清除，不持久化到本地.
+    #DB_CLOSE_DELAY=-1表示应用运行期间，数据库一直开启，否则最后一个连接关闭后，数据库也会关闭，从而数据丢失.
+  #    url: jdbc:h2:mem:test;DB_CLOSE_DELAY=-1
+
+  #jpa 配置
+  jpa:
+    show-sql: true
+
+  #H2 Web 控制台配置，启用 h2 Console 控制台，并设置访问路径
+  h2:
+    console:
+      enabled: true
+      path: /h2_console
+
+  # quartz 调度器配置
+  quartz:
+    properties:
+      org:
+        quartz:
+          scheduler:
+            instanceName: clusteredScheduler
+            instanceId: AUTO
+          jobStore:
+            class: org.quartz.impl.jdbcjobstore.JobStoreTX
+            driverDelegateClass: org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+            tablePrefix: QRTZ_
+          threadPool:
+            class: org.quartz.simpl.SimpleThreadPool
+            threadCount: 15 # 开启10个线程
+            threadPriority: 5
+            threadsInheritContextClassLoaderOfInitializingThread: true
+    #数据库方式
+    job-store-type: jdbc
