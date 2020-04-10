@@ -32,12 +32,6 @@
             <version>2.2.5.RELEASE</version>
         </dependency>
 
-        <!--jpa 持久化数据库-->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-
         <!--使用嵌入式的 h2 数据库，这样就不需要安装数据库了 -->
         <dependency>
             <groupId>com.h2database</groupId>

@@ -1,11 +1,6 @@
 spring:
   profiles:
     active: mysqlDB  #切换指定的数据源.
-  #jpa 配置
-  jpa:
-    show-sql: true
-    hibernate:
-      ddl-auto: update  #如果表不存在，则自动新建，如果表结构发生变化，则自动更新
 
   # quartz 调度器配置
   quartz:
