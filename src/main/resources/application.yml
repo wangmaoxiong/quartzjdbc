@@ -4,24 +4,30 @@ spring:
 
   # quartz 调度器配置
   quartz:
+    job-store-type: jdbc #数据持久化方式，可选值：MEMORY、JDBC
+    auto-startup: true   #初始化后是否自动启动计划程序,默认为  true
+    overwrite-existing-jobs: false #配置的作业是否应覆盖现有的作业定义
+    scheduler-name: wmxQuartzScheduler # 计划程序的名称
+    startup-delay: 10s #初始化完成后启动计划程序的延迟时间，默认为 0 秒
+    wait-for-jobs-to-complete-on-shutdown: false # 关闭时是否等待正在运行的作业完成
+
+    #对于 Quartz 自带的配置，即可以使用 quartz 自己的 quartz.properties 配置文件进行配置，也可以直接配置在 properties 属性下，它是一个 map
+    #quartz 完整配置：https://wangmaoxiong.blog.csdn.net/article/details/105057405#quartz.properties%20%E4%B8%8E%20QuartzProperties%20%E9%85%8D%E7%BD%AE%E9%80%89%E9%A1%B9
     properties:
       org:
         quartz:
-          scheduler:
-            instanceName: clusteredScheduler
-            instanceId: AUTO
           jobStore:
+            #如果不需要将调度命令（例如添加和删除triggers）绑定到其他事务，那么可以通过使用 JobStoreTX 管理事务
             class: org.quartz.impl.jdbcjobstore.JobStoreTX
+            #设置数据库驱动代理，StdJDBCDelegate 是一个使用 JDBC 代码来执行其工作的代理. 其他代理可以在"org.quartz.impl.jdbcjobstore“包或其子包中找到
             driverDelegateClass: org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+            #通知 JobStore 使用的表前缀
             tablePrefix: QRTZ_
           threadPool:
-            class: org.quartz.simpl.SimpleThreadPool
-            threadCount: 15 # 开启15个线程
-            threadPriority: 5
-            threadsInheritContextClassLoaderOfInitializingThread: true
-    #数据库方式
-    job-store-type: jdbc
-
+            class: org.quartz.simpl.SimpleThreadPool  #quartz 使用的线程池类型，org.quartz.spi.ThreadPool
+            threadCount: 15   #线程池中的线程总个数，表示最多可以同时执行的个任务/作业个数
+            threadPriority: 5   #线程优先级
+            threadsInheritContextClassLoaderOfInitializingThread: true #线程继承初始化线程的上下文类加载器
 
 ---
 spring:

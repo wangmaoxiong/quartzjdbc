@@ -40,7 +40,7 @@ public class SchedulerService {
      * @throws IOException
      * @throws SchedulerException
      */
-    public void scheduleJob(SchedulerEntity schedulerEntity) throws IOException, SchedulerException {
+    public void scheduleJob(SchedulerEntity schedulerEntity) throws IOException, SchedulerException, ClassNotFoundException {
         //schedulerEntity 中 job_data 属性值必须设置为 json 字符串格式，所以这里转为 JobDataMap 对象.
         JobDataMap jobDataMap = new JobDataMap();
         JobDataMap triggerDataMap = new JobDataMap();
@@ -63,7 +63,8 @@ public class SchedulerService {
         if (StringUtils.isBlank(schedulerEntity.getJob_name())) {
             schedulerEntity.setJob_name(UUID.randomUUID().toString());
         }
-        JobDetail jobDetail = JobBuilder.newJob(RequestJob.class)
+        Class<? extends Job> jobClass = (Class<? extends Job>) Class.forName(schedulerEntity.getJob_class_name());
+        JobDetail jobDetail = JobBuilder.newJob(jobClass)
                 .withIdentity(schedulerEntity.getJob_name(), schedulerEntity.getJob_group())
                 .withDescription(schedulerEntity.getJob_desc())
                 .usingJobData(jobDataMap)
