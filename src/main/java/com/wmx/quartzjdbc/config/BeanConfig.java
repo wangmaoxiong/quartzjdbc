@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.quartz.QuartzAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.quartz.SchedulerFactoryBean;
+import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.Resource;
 
@@ -26,5 +27,10 @@ public class BeanConfig {
     @Bean
     public Scheduler scheduler() {
         return schedulerFactoryBean.getScheduler();
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 }

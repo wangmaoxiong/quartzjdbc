@@ -1,8 +1,17 @@
 package com.wmx.quartzjdbc.jobs;
 
+import org.apache.commons.lang3.StringUtils;
 import org.quartz.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import javax.annotation.Resource;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
 
 /**
  * http get 请求作业
@@ -16,17 +25,29 @@ import org.slf4j.LoggerFactory;
  */
 @DisallowConcurrentExecution
 @PersistJobDataAfterExecution
+@Service
 public class RequestJob implements Job {
     private static Logger logger = LoggerFactory.getLogger(RequestJob.class);
+    private static final String HTTP = "http";
+    @Resource
+    private RestTemplate restTemplate;
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         JobDetail jobDetail = context.getJobDetail();
-        JobDataMap jobDataMap = jobDetail.getJobDataMap();
-        logger.info("group={},name={},description={},url={}",
+        Trigger trigger = context.getTrigger();
+        JobDataMap mergedJobDataMap = context.getMergedJobDataMap();
+        logger.info("jobGroup={},jobName={},jobDesc={},triggerGroup={},triggerName={},triggerDesc={}",
                 jobDetail.getKey().getGroup(),
                 jobDetail.getKey().getName(),
                 jobDetail.getDescription(),
-                jobDataMap.getString("url"));
+                trigger.getKey().getGroup(),
+                trigger.getKey().getName(),
+                trigger.getDescription());
+        Object url = mergedJobDataMap.get("url");
+        if (url != null && StringUtils.isNotBlank(url.toString()) && url.toString().toLowerCase().startsWith(HTTP)) {
+            ResponseEntity<String> forEntity = restTemplate.getForEntity(url.toString(), String.class);
+            logger.info("StatusCode={}", forEntity.getStatusCode());
+        }
     }
 }
