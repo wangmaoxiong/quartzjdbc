@@ -9,9 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.Resource;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
 
 /**
  * http get 请求作业
@@ -46,8 +43,9 @@ public class RequestJob implements Job {
                 trigger.getDescription());
         Object url = mergedJobDataMap.get("url");
         if (url != null && StringUtils.isNotBlank(url.toString()) && url.toString().toLowerCase().startsWith(HTTP)) {
+            //发送 http 请求.
             ResponseEntity<String> forEntity = restTemplate.getForEntity(url.toString(), String.class);
-            logger.info("StatusCode={}", forEntity.getStatusCode());
+            logger.info("url={},StatusCode={}", url, forEntity.getStatusCode());
         }
     }
 }

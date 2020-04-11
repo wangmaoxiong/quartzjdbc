@@ -1,7 +1,6 @@
 package com.wmx.quartzjdbc.service;
 
 import com.wmx.quartzjdbc.config.BeanConfig;
-import com.wmx.quartzjdbc.jobs.RequestJob;
 import com.wmx.quartzjdbc.pojo.SchedulerEntity;
 import org.apache.commons.lang3.StringUtils;
 import org.quartz.*;
@@ -57,8 +56,8 @@ public class SchedulerService {
 
         /**
          *  1）设置任务详情。使用 taskId 与 groupName 作为作业的名称与组名
-         *  storeDurably(boolean jobDurability)：任务是否持久化
-         *  requestRecovery(boolean jobShouldRecover) :任务是否恢复.
+         *  storeDurably(boolean jobDurability)：指示 job 是否是持久性的。如果 job 是非持久的，当没有活跃的 trigger 与之关联时，就会被自动地从 scheduler 中删除。即非持久的 job 的生命期是由 trigger 的存在与否决定的.
+         *  requestRecovery(boolean jobShouldRecover) :指示  job 遇到故障重启后，是否是可恢复的。如果 job 是可恢复的，在其执行的时候，如果 scheduler 发生硬关闭（hard shutdown)（比如运行的进程崩溃了，或者关机了），则当 scheduler 重启时，该 job 会被重新执行。
          */
         if (StringUtils.isBlank(schedulerEntity.getJob_name())) {
             schedulerEntity.setJob_name(UUID.randomUUID().toString());
@@ -197,6 +196,5 @@ public class SchedulerService {
         scheduler.resumeAll();
         logger.info("恢复所有作业.");
     }
-
 
 }
