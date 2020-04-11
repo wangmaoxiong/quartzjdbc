@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.io.IOException;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -147,6 +148,19 @@ public class SchedulerService {
         //删除作业的同时，关联的触发器也会一起被删除.
         scheduler.deleteJob(jobKey);
         logger.info("删除作业 {} -> {}" + jobKey.getGroup(), jobKey.getName());
+    }
+
+    /**
+     * 删除多个作业
+     *
+     * @param jobKeyList
+     * @throws SchedulerException
+     */
+    public void deleteJobList(List<JobKey> jobKeyList) throws SchedulerException {
+        //如果 JobKey 指定的作业不存在，则 deleteJob(JobKey jobKey) 无实质性操作，不会抛异常.
+        //删除作业的同时，关联的触发器也会一起被删除.
+        scheduler.deleteJobs(jobKeyList);
+        logger.info("删除作业 {}", jobKeyList);
     }
 
     /**

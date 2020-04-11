@@ -4,6 +4,7 @@ import com.wmx.quartzjdbc.enums.ResultCode;
 import com.wmx.quartzjdbc.pojo.ResultData;
 import com.wmx.quartzjdbc.pojo.SchedulerEntity;
 import com.wmx.quartzjdbc.service.SchedulerService;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.quartz.JobKey;
 import org.slf4j.Logger;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -143,7 +145,7 @@ public class SchedulerController {
     }
 
     /**
-     * 删除调度作业
+     * 删除指定的单个调度作业
      * http://localhost:8080/schedule/deleteJob?jobName=xx&jobGroup=
      *
      * @param jobName
@@ -156,6 +158,48 @@ public class SchedulerController {
         try {
             JobKey jobKey = new JobKey(jobName, jobGroup);
             schedulerService.deleteJob(jobKey);
+            resultData = new ResultData(ResultCode.SUCCESS, null);
+        } catch (Exception e) {
+            resultData = new ResultData(ResultCode.FAIL, null);
+            logger.error(e.getMessage(), e);
+        }
+        return resultData;
+    }
+
+    /**
+     * 删除指定的多个调度作业
+     * http://localhost:8080/schedule/deleteJobList
+     * post 请求参数举例：
+     * [{
+     * "name": "j1000",
+     * "group": "reqJobGroup"
+     * },
+     * {
+     * "name": "j2000",
+     * "group": "reqJobGroup"
+     * }
+     * ]
+     *
+     * @param jobKeyList
+     * @return
+     */
+    @PostMapping("schedule/deleteJobList")
+    public ResultData deleteJobList(@RequestBody List<Map<String, String>> jobKeyList) {
+        ResultData resultData = null;
+        try {
+            if (jobKeyList != null && jobKeyList.size() > 0) {
+                List<JobKey> jobKeys = new LinkedList<>();
+                for (Map map : jobKeyList) {
+                    Object group = map.get("group");
+                    Object name = map.get("name");
+                    if (ObjectUtils.isNotEmpty(group) && ObjectUtils.isNotEmpty(name)) {
+                        jobKeys.add(JobKey.jobKey(String.valueOf(name), String.valueOf(group)));
+                    }
+                }
+                if (jobKeys.size() > 0) {
+                    schedulerService.deleteJobList(jobKeys);
+                }
+            }
             resultData = new ResultData(ResultCode.SUCCESS, null);
         } catch (Exception e) {
             resultData = new ResultData(ResultCode.FAIL, null);
