@@ -72,6 +72,7 @@ public class SchedulerService {
                 .build();
 
         //2）设置触发器，使用 taskId 与 groupName 作为触发器的名称与组名
+        //过期执行策略采用：MISFIRE_INSTRUCTION_DO_NOTHING
         if (StringUtils.isBlank(schedulerEntity.getTrigger_name())) {
             schedulerEntity.setTrigger_name(UUID.randomUUID().toString());
         }
@@ -79,7 +80,8 @@ public class SchedulerService {
                 .withIdentity(schedulerEntity.getTrigger_name(), schedulerEntity.getTrigger_group())
                 .withDescription(schedulerEntity.getTrigger_desc())
                 .usingJobData(triggerDataMap)
-                .withSchedule(CronScheduleBuilder.cronSchedule(schedulerEntity.getCron_expression()))
+                .withSchedule(CronScheduleBuilder.cronSchedule(schedulerEntity.getCron_expression())
+                        .withMisfireHandlingInstructionDoNothing())
                 .build();
 
         //3）scheduleJob(JobDetail jobDetail, Trigger trigger)
@@ -121,7 +123,8 @@ public class SchedulerService {
                     .withIdentity(triggerKey)
                     .withDescription(schedulerEntity.getTrigger_desc())
                     .usingJobData(triggerDataMap)
-                    .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
+                    .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)
+                            .withMisfireHandlingInstructionDoNothing())
                     .build();
             Date nextDate = scheduler.rescheduleJob(triggerKey, triggerNew);
             logger.info("重新绑定作业触发器.{} -> {}." + triggerKey.getGroup(), triggerKey.getName());
