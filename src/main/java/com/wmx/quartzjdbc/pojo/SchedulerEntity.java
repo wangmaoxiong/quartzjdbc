@@ -3,23 +3,25 @@ package com.wmx.quartzjdbc.pojo;
 import java.util.Map;
 
 /**
- * 调度实体
+ * 调度实体.
  * sched_name：调度器名称
  * job_name：作业名称
  * job_group：作业所属组名称
  * job_desc：作业描述
  * job_class_name：作业详情关联的 Job 类名，如 {@link com.wmx.quartzjdbc.jobs.RequestJob}
- * job_data：作业的参数
+ * job_data：作业的参数，因为参数可能有多个，所以设计成 Map 结构
  * trigger_name：触发器名称
  * trigger_group：触发器所属组名称
  * trigger_state：触发器的状态，如：PAUSED（暂停）、ACQUIRED（活动）、WAITING（等待）
  * trigger_desc:触发器描述
  * trigger_type：触发器类型，如 cron 表示 cron 触发器
- * trigger_data：触发器参数
+ * trigger_data：触发器参数，因为参数可能有多个，所以设计成 Map 结构
  * cron_expression：cron 触发器表达式.
  *
  * @author wangmaoxiong
  * @version 1.0
+ * @// TODO: 2020/4/12：因为作业与触发器是一对多的关系，所以可以将触发器的参数封装成 List<map> 结构，这样实体上就能体现出1:n的关系。虽然目前也能通过多次注册，达到一个作业对应多个触发器的目的，但是如果能直接从设计上解决，则一次就可能注册多个.
+ * //虽然
  * @date 2020/4/10 14:41
  */
 public class SchedulerEntity {
@@ -28,13 +30,13 @@ public class SchedulerEntity {
     private String job_group;
     private String job_desc;
     private String job_class_name;
-    private Map<String,Object> job_data;
+    private Map<String, Object> job_data;
     private String trigger_name;
     private String trigger_group;
     private String trigger_state;
     private String trigger_desc;
     private String trigger_type;
-    private Map<String,Object> trigger_data;
+    private Map<String, Object> trigger_data;
     private String cron_expression;
 
     public String getSched_name() {
