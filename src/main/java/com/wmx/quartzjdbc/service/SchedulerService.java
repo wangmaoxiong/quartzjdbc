@@ -10,10 +10,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.io.IOException;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Scheduler 调度业务层，用于启动、暂停、删除作业(Job)
@@ -34,7 +31,7 @@ public class SchedulerService {
     private Scheduler scheduler;
 
     /**
-     * 注册并启动作业
+     * 注册并启动作业。如果 Job 或者 Trigger 已经存在，则替换它们.
      *
      * @param schedulerEntity
      * @throws IOException
@@ -85,10 +82,13 @@ public class SchedulerService {
                         .withMisfireHandlingInstructionDoNothing())
                 .build();
 
-        //3）scheduleJob(JobDetail jobDetail, Trigger trigger)
-        // 作业注册并启动。注意同一个组下面的任务详情或者触发器名称必须唯一，否则重复注册时会报错，已经存在.
-        scheduler.scheduleJob(jobDetail, trigger);
-        scheduler.start();
+        //3）scheduleJob(JobDetail jobDetail, Trigger trigger):作业注册并启动。注意同一个组下面的任务详情或者触发器名称必须唯一，否则重复注册时会报错，已经存在.
+        //scheduleJobs(Map<JobDetail, Set<? extends Trigger>> triggersAndJobs, boolean replace)
+        // replace=true，表示如果存储相同的 Job 或者 Trigger ，则替换它们
+        //因为全局配置文件中配置了 spring.quartz.uto-startup=true，所以不再需要手动启动：scheduler.start()
+        Set<Trigger> triggerSet = new HashSet<>();
+        triggerSet.add(trigger);
+        scheduler.scheduleJob(jobDetail, triggerSet, true);
         logger.info("注册并启动作业:{}", schedulerEntity);
     }
 
@@ -164,6 +164,17 @@ public class SchedulerService {
     }
 
     /**
+     * 清除/删除所有计划数据，包括所有的 Job，所有的 Trigger，所有的 日历。
+     * jdbc 持久化时，clear 操作后，数据库相应表中的数据全部会被删除. {@link org.quartz.impl.jdbcjobstore.StdJDBCDelegate#clearData}
+     *
+     * @throws SchedulerException
+     */
+    public void clear() throws SchedulerException {
+        scheduler.clear();
+        logger.info("清除/删除所有计划数据，包括所有的 Job，所有的 Trigger，所有的 日历。");
+    }
+
+    /**
      * 暂停作业。可以重复调用，即使任务已经被暂停了.
      * pauseJob(JobKey jobKey)：会暂停指定 Job 的所有触发器，即完全暂停作业
      * pauseTrigger(TriggerKey triggerKey)：暂停指定的触发器
@@ -212,6 +223,16 @@ public class SchedulerService {
     public void resumeAll() throws SchedulerException {
         scheduler.resumeAll();
         logger.info("恢复所有作业.");
+    }
+
+    /**
+     * 停止/关闭 quartz 调度程序，关闭了整个调度的线程池，意味者所有作业都不会继续执行。
+     * 可以反复调用，即使当时已经被 shutdown
+     *
+     * @throws SchedulerException
+     */
+    public void shutdown() throws SchedulerException {
+        scheduler.shutdown(true);
     }
 
 }

@@ -7,6 +7,7 @@ import com.wmx.quartzjdbc.service.SchedulerService;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.quartz.JobKey;
+import org.quartz.SchedulerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -72,7 +73,7 @@ public class SchedulerController {
     }
 
     /**
-     * 注册作业并启动。
+     * 注册作业并启动。如果 Job 或者 Trigger 已经存在，则替换它们. 有修改的功能。
      * http://localhost:8080/schedule/scheduleJob   使用 post 请求，body 正文参数如：
      * <p>
      * {
@@ -208,6 +209,46 @@ public class SchedulerController {
         return resultData;
     }
 
+    /**
+     * 清除/删除所有计划数据，包括所有的 Job，所有的 Trigger，所有的 日历。
+     * clear 清除之后，仍然可以继续注册，然后作业可以继续被触发执行.
+     * http://localhost:8080/schedule/clear
+     *
+     * @return
+     */
+    @GetMapping("schedule/clear")
+    public ResultData clear() {
+        ResultData resultData = null;
+        try {
+            schedulerService.clear();
+            resultData = new ResultData(ResultCode.SUCCESS, null);
+        } catch (SchedulerException e) {
+            resultData = new ResultData(ResultCode.FAIL, null);
+            logger.error(e.getMessage(), e);
+        }
+        return resultData;
+    }
+
+    /**
+     * 停止/关闭 quartz 调度程序，关闭了整个调度的线程池，意味者所有作业都不会继续执行。
+     * 关闭后无法使用 start 重新启动，只能重启应用.
+     * http://localhost:8080/schedule/shutdown
+     * The Scheduler has been shutdown.
+     *
+     * @return
+     */
+    @GetMapping("schedule/shutdown")
+    public ResultData shutdown() {
+        ResultData resultData = null;
+        try {
+            schedulerService.shutdown();
+            resultData = new ResultData(ResultCode.SUCCESS, null);
+        } catch (SchedulerException e) {
+            resultData = new ResultData(ResultCode.FAIL, null);
+            logger.error(e.getMessage(), e);
+        }
+        return resultData;
+    }
 
     /**
      * 暂停指定作业
