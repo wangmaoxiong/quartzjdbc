@@ -73,7 +73,7 @@ public class SchedulerController {
     }
 
     /**
-     * 注册作业并启动。如果 Job 或者 Trigger 已经存在，则替换它们. 有修改的功能。
+     * 注册作业。如果 Job 或者 Trigger 已经存在，则替换它们. 否则新增。有添加和修改的功能。
      * http://localhost:8080/schedule/scheduleJob   使用 post 请求，body 正文参数如：
      * <p>
      * {
