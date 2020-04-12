@@ -38,51 +38,10 @@ public class SchedulerService {
      * @throws SchedulerException
      */
     public void scheduleJob(SchedulerEntity schedulerEntity) throws IOException, SchedulerException, ClassNotFoundException {
-        //schedulerEntity 中 job_data 属性值必须设置为 json 字符串格式，所以这里转为 JobDataMap 对象.
-        JobDataMap jobDataMap = new JobDataMap();
-        JobDataMap triggerDataMap = new JobDataMap();
-        Map<String, Object> jobData = schedulerEntity.getJob_data();
-        Map<String, Object> triggerData = schedulerEntity.getTrigger_data();
-        //作业参数
-        if (jobData != null && jobData.size() > 0) {
-            jobDataMap.putAll(jobData);
-        }
-        //触发器参数
-        if (triggerData != null && triggerData.size() > 0) {
-            triggerDataMap.putAll(triggerData);
-        }
+        JobDetail jobDetail = this.getJobDetail(schedulerEntity);
+        Trigger trigger = this.getTrigger(schedulerEntity);
 
-        /**
-         *  1）设置任务详情。使用 taskId 与 groupName 作为作业的名称与组名
-         *  storeDurably(boolean jobDurability)：指示 job 是否是持久性的。如果 job 是非持久的，当没有活跃的 trigger 与之关联时，就会被自动地从 scheduler 中删除。即非持久的 job 的生命期是由 trigger 的存在与否决定的.
-         *  requestRecovery(boolean jobShouldRecover) :指示  job 遇到故障重启后，是否是可恢复的。如果 job 是可恢复的，在其执行的时候，如果 scheduler 发生硬关闭（hard shutdown)（比如运行的进程崩溃了，或者关机了），则当 scheduler 重启时，该 job 会被重新执行。
-         */
-        if (StringUtils.isBlank(schedulerEntity.getJob_name())) {
-            schedulerEntity.setJob_name(UUID.randomUUID().toString());
-        }
-        Class<? extends Job> jobClass = (Class<? extends Job>) Class.forName(schedulerEntity.getJob_class_name());
-        JobDetail jobDetail = JobBuilder.newJob(jobClass)
-                .withIdentity(schedulerEntity.getJob_name(), schedulerEntity.getJob_group())
-                .withDescription(schedulerEntity.getJob_desc())
-                .usingJobData(jobDataMap)
-                .storeDurably(true)
-                .requestRecovery(true)
-                .build();
-
-        //2）设置触发器，使用 taskId 与 groupName 作为触发器的名称与组名
-        //过期执行策略采用：MISFIRE_INSTRUCTION_DO_NOTHING
-        if (StringUtils.isBlank(schedulerEntity.getTrigger_name())) {
-            schedulerEntity.setTrigger_name(UUID.randomUUID().toString());
-        }
-        Trigger trigger = TriggerBuilder.newTrigger()
-                .withIdentity(schedulerEntity.getTrigger_name(), schedulerEntity.getTrigger_group())
-                .withDescription(schedulerEntity.getTrigger_desc())
-                .usingJobData(triggerDataMap)
-                .withSchedule(CronScheduleBuilder.cronSchedule(schedulerEntity.getCron_expression())
-                        .withMisfireHandlingInstructionDoNothing())
-                .build();
-
-        //3）scheduleJob(JobDetail jobDetail, Trigger trigger):作业注册并启动。注意同一个组下面的任务详情或者触发器名称必须唯一，否则重复注册时会报错，已经存在.
+        //scheduleJob(JobDetail jobDetail, Trigger trigger):作业注册并启动。注意同一个组下面的任务详情或者触发器名称必须唯一，否则重复注册时会报错，已经存在.
         //scheduleJobs(Map<JobDetail, Set<? extends Trigger>> triggersAndJobs, boolean replace)
         // replace=true，表示如果存储相同的 Job 或者 Trigger ，则替换它们
         //因为全局配置文件中配置了 spring.quartz.uto-startup=true，所以不再需要手动启动：scheduler.start()
@@ -90,6 +49,65 @@ public class SchedulerService {
         triggerSet.add(trigger);
         scheduler.scheduleJob(jobDetail, triggerSet, true);
         logger.info("注册并启动作业:{}", schedulerEntity);
+    }
+
+    /**
+     * 内部方法：处理 Trigger
+     *
+     * @param schedulerEntity
+     * @return
+     */
+    private Trigger getTrigger(SchedulerEntity schedulerEntity) {
+        //触发器参数
+        //schedulerEntity 中 job_data 属性值必须设置为 json 字符串格式，所以这里转为 JobDataMap 对象.
+        JobDataMap triggerDataMap = new JobDataMap();
+        Map<String, Object> triggerData = schedulerEntity.getTrigger_data();
+        if (triggerData != null && triggerData.size() > 0) {
+            triggerDataMap.putAll(triggerData);
+        }
+        //如果触发器名称为空，则使用 UUID 随机生成. group 为null时，会默认为 default.
+        if (StringUtils.isBlank(schedulerEntity.getTrigger_name())) {
+            schedulerEntity.setTrigger_name(UUID.randomUUID().toString());
+        }
+        //过期执行策略采用：MISFIRE_INSTRUCTION_DO_NOTHING
+        return TriggerBuilder.newTrigger()
+                .withIdentity(schedulerEntity.getTrigger_name(), schedulerEntity.getTrigger_group())
+                .withDescription(schedulerEntity.getTrigger_desc())
+                .usingJobData(triggerDataMap)
+                .withSchedule(CronScheduleBuilder.cronSchedule(schedulerEntity.getCron_expression())
+                        .withMisfireHandlingInstructionDoNothing())
+                .build();
+    }
+
+    /**
+     * 内部方法：处理 JobDetail
+     * storeDurably(boolean jobDurability)：指示 job 是否是持久性的。如果 job 是非持久的，当没有活跃的 trigger 与之关联时，就会被自动地从 scheduler 中删除。即非持久的 job 的生命期是由 trigger 的存在与否决定的.
+     * requestRecovery(boolean jobShouldRecover) :指示  job 遇到故障重启后，是否是可恢复的。如果 job 是可恢复的，在其执行的时候，如果 scheduler 发生硬关闭（hard shutdown)（比如运行的进程崩溃了，或者关机了），则当 scheduler 重启时，该 job 会被重新执行。
+     *
+     * @param schedulerEntity
+     * @return
+     * @throws ClassNotFoundException
+     */
+    private JobDetail getJobDetail(SchedulerEntity schedulerEntity) throws ClassNotFoundException {
+        //如果任务名称为空，则使用 UUID 随机生成.
+        if (StringUtils.isBlank(schedulerEntity.getJob_name())) {
+            schedulerEntity.setJob_name(UUID.randomUUID().toString());
+        }
+        Class<? extends Job> jobClass = (Class<? extends Job>) Class.forName(schedulerEntity.getJob_class_name());
+        //作业参数
+        JobDataMap jobDataMap = new JobDataMap();
+        Map<String, Object> jobData = schedulerEntity.getJob_data();
+        if (jobData != null && jobData.size() > 0) {
+            jobDataMap.putAll(jobData);
+        }
+        //设置任务详情.
+        return JobBuilder.newJob(jobClass)
+                .withIdentity(schedulerEntity.getJob_name(), schedulerEntity.getJob_group())
+                .withDescription(schedulerEntity.getJob_desc())
+                .usingJobData(jobDataMap)
+                .storeDurably(true)
+                .requestRecovery(true)
+                .build();
     }
 
     /**
@@ -101,39 +119,60 @@ public class SchedulerService {
      */
     public Date rescheduleJob(SchedulerEntity schedulerEntity) throws SchedulerException, IOException {
         //触发器参数
-        JobDataMap triggerDataMap = new JobDataMap();
-        Map<String, Object> triggerData = schedulerEntity.getTrigger_data();
-        if (triggerData != null && triggerData.size() > 0) {
-            triggerDataMap.putAll(triggerData);
+        TriggerKey triggerKey = TriggerKey.triggerKey(schedulerEntity.getTrigger_name(), schedulerEntity.getTrigger_group());
+        // scheduler.getTrigger(TriggerKey triggerKey)：从调度器中获取指定的触发器
+        //修改任务的触发器时，触发器必须存在再修改.
+        CronTrigger trigger = (CronTrigger) scheduler.getTrigger(triggerKey);
+        if (trigger == null) {
+            logger.warn("根据 {} -> {} 未查到对应触发器..", triggerKey.getGroup(), triggerKey.getName());
+            return null;
         }
+        Trigger triggerNew = this.getTrigger(schedulerEntity);
         /**
-         * cronExpression：新设置的 cron 表达式字符串.
-         * scheduler.getTrigger(TriggerKey triggerKey)：从调度器中获取指定的触发器
          * rescheduleJob(TriggerKey triggerKey, Trigger newTrigger)：重新注册作业
          *      先根据 triggerKey 删除指定的触发器，然后存储新触发器(newTrigger)，并关联相同的作业.
          * 一个触发器只能关联一个 Job，而 一个 Job 可以关联多个触发器.
          */
-        String cronExpression = schedulerEntity.getCron_expression();
-        if (StringUtils.isBlank(schedulerEntity.getTrigger_name())) {
-            schedulerEntity.setTrigger_name(UUID.randomUUID().toString());
+        Date nextDate = scheduler.rescheduleJob(triggerKey, triggerNew);
+        logger.info("重新绑定作业触发器.{} -> {}." + triggerKey.getGroup(), triggerKey.getName());
+        return nextDate;
+    }
+
+    /**
+     * 注册 job 与 触发器。区别于上面的是这里会对 作业和触发器进行分开注册.
+     * job_class_name 不能为空时，注册 JobDetail 作业详情，如果已经存在，则更新，不存在，则添加.
+     * cron_expression 不为空时，注册触发器（注册触发器时，对应的作业必须先存在）：
+     * <span>根据参数 job_name、job_group 获取 JobDetail，如果存在，则关联此触发器与 JobDetail，然后注册触发器，</span>
+     *
+     * @param schedulerEntity
+     * @throws SchedulerException
+     */
+    public void scheduleJobOrTrigger(SchedulerEntity schedulerEntity) throws SchedulerException, ClassNotFoundException {
+        //1)先处理 job
+        String job_class_name = schedulerEntity.getJob_class_name();
+        JobDetail jobDetail = null;
+        if (StringUtils.isNotBlank(job_class_name)) {
+            jobDetail = this.getJobDetail(schedulerEntity);
+            //往调度器中添加作业.
+            scheduler.addJob(jobDetail, true);
         }
-        TriggerKey triggerKey = TriggerKey.triggerKey(schedulerEntity.getTrigger_name(), schedulerEntity.getTrigger_group());
-        CronTrigger trigger = (CronTrigger) scheduler.getTrigger(triggerKey);
+        //2）处理触发器
+        String job_name = schedulerEntity.getJob_name();
+        String job_group = schedulerEntity.getJob_group();
+        if (jobDetail == null && StringUtils.isNotBlank(job_group) && StringUtils.isNotBlank(job_name)) {
+            jobDetail = scheduler.getJobDetail(JobKey.jobKey(job_name, job_group));
+        }
+        String cron_expression = schedulerEntity.getCron_expression();
+        Trigger trigger = null;
+        if (jobDetail != null && StringUtils.isNotBlank(cron_expression)) {
+            trigger = this.getTrigger(schedulerEntity);
+        }
         if (trigger != null) {
-            Trigger triggerNew = TriggerBuilder.newTrigger()
-                    .withIdentity(triggerKey)
-                    .withDescription(schedulerEntity.getTrigger_desc())
-                    .usingJobData(triggerDataMap)
-                    .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)
-                            .withMisfireHandlingInstructionDoNothing())
-                    .build();
-            Date nextDate = scheduler.rescheduleJob(triggerKey, triggerNew);
-            logger.info("重新绑定作业触发器.{} -> {}." + triggerKey.getGroup(), triggerKey.getName());
-            return nextDate;
-        } else {
-            logger.warn("根据 {} -> {} 未查到对应触发器..", triggerKey.getGroup(), triggerKey.getName());
+            //为触发器关联作业. 一个触发器只能关联一个作业.
+            trigger.getTriggerBuilder().forJob(jobDetail);
+            //注册触发器
+            scheduler.scheduleJob(trigger);
         }
-        return null;
     }
 
     /**

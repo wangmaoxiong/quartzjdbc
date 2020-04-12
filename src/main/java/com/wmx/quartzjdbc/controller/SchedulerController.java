@@ -61,7 +61,7 @@ public class SchedulerController {
                     "t2.trigger_name,t2.trigger_group,t2.trigger_state,t2.description as trigger_desc,t2.trigger_type , t2.job_data as trigger_data \n" +
                     "from qrtz_job_details t1 left outer join qrtz_triggers t2 \n" +
                     "on t1.sched_name=t2.sched_name and t1.job_name = t2.job_name and t1.job_group = t2.job_group\n" +
-                    ") t4 left outer join qrtz_cron_triggers t3 on t3.sched_name = t4.sched_name and t3.trigger_name = t4.job_name and t3.trigger_group = t4.job_group " +
+                    ") t4 left outer join qrtz_cron_triggers t3 on t3.sched_name = t4.sched_name and t3.trigger_name = t4.trigger_name and t3.trigger_group = t4.trigger_group " +
                     "limit " + ((pageNum - 1) * pageSize) + "," + (pageNum * pageSize);
             List<Map<String, Object>> queryForList = jdbcTemplate.queryForList(sql);
             resultData = new ResultData(ResultCode.SUCCESS, queryForList);
@@ -74,6 +74,7 @@ public class SchedulerController {
 
     /**
      * 注册作业。如果 Job 或者 Trigger 已经存在，则替换它们. 否则新增。有添加和修改的功能。
+     * 如：第一次 job1 与 trigger1，第二次再新增 job1 与 trigger，则第二次是修改了 job1,同时新增了 trigger2，此时 job1 便关联了两个触发器，依次类推.
      * http://localhost:8080/schedule/scheduleJob   使用 post 请求，body 正文参数如：
      * <p>
      * {
@@ -111,7 +112,7 @@ public class SchedulerController {
     }
 
     /**
-     * 重新注册任务的触发器
+     * 重新注册任务的触发器，如果指定的触发器不存在，则不做更新.
      * http://localhost:8080/schedule/rescheduleJob
      * post 参数如：
      * {
@@ -138,6 +139,28 @@ public class SchedulerController {
             }
             Date nextDate = schedulerService.rescheduleJob(schedulerEntity);
             resultData = new ResultData(ResultCode.SUCCESS, nextDate);
+        } catch (Exception e) {
+            resultData = new ResultData(ResultCode.FAIL, null);
+            logger.error(e.getMessage(), e);
+        }
+        return resultData;
+    }
+
+    /**
+     * 注册 job 与 触发器。区别于上面的是这里会对 作业和触发器进行分开注册.
+     * job_class_name 不能为空时，注册 JobDetail 作业详情，如果已经存在，则更新.
+     * cron_expression 不为空时，注册触发器（注册触发器时，对应的作业必须先存在）：
+     * <span>根据参数 job_name、job_group 获取 JobDetail，如果存在，则关联此触发器与 JobDetail，然后注册触发器，</span>
+     *
+     * @param schedulerEntity
+     * @return
+     */
+    @PostMapping("schedule/scheduleJobOrTrigger")
+    public ResultData scheduleJobOrTrigger(SchedulerEntity schedulerEntity) {
+        ResultData resultData = null;
+        try {
+            schedulerService.scheduleJobOrTrigger(schedulerEntity);
+            resultData = new ResultData(ResultCode.SUCCESS, null);
         } catch (Exception e) {
             resultData = new ResultData(ResultCode.FAIL, null);
             logger.error(e.getMessage(), e);
