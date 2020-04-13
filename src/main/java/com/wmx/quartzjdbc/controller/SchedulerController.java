@@ -74,7 +74,8 @@ public class SchedulerController {
 
     /**
      * 注册作业。如果 Job 或者 Trigger 已经存在，则替换它们. 否则新增。有添加和修改的功能。
-     * 如：第一次 job1 与 trigger1，第二次再新增 job1 与 trigger，则第二次是修改了 job1,同时新增了 trigger2，此时 job1 便关联了两个触发器，依次类推.
+     * 如：第一次 job1 与 trigger1 关联注册，第二次再新增 job1 与 trigger2，则第二次是修改了 job1,同时新增了 trigger2，此时 job1 便关联了两个触发器，依次类推.
+     * 再如：第一次 job1 与 trigger1 关联注册，第二次再新增 job2 与 trigger1，此时 job2 是新增，trigger1 会改为关联 job2，原来的 job1 此时没有关联触发器了.
      * http://localhost:8080/schedule/scheduleJob   使用 post 请求，body 正文参数如：
      * <p>
      * {
@@ -156,7 +157,7 @@ public class SchedulerController {
      * @return
      */
     @PostMapping("schedule/scheduleJobOrTrigger")
-    public ResultData scheduleJobOrTrigger(SchedulerEntity schedulerEntity) {
+    public ResultData scheduleJobOrTrigger(@RequestBody SchedulerEntity schedulerEntity) {
         ResultData resultData = null;
         try {
             schedulerService.scheduleJobOrTrigger(schedulerEntity);
