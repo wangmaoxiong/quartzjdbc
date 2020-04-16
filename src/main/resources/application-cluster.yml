@@ -1,0 +1,73 @@
+server:
+  port: 8081
+
+spring:
+  profiles:
+    active: mysqlDB  #切换指定的数据源.
+
+  # quartz 调度器配置
+  quartz:
+    job-store-type: jdbc #数据持久化方式，可选值：MEMORY、JDBC
+    auto-startup: true   #初始化后是否自动启动计划程序,默认为  true
+    overwrite-existing-jobs: false #配置的作业是否应覆盖现有的作业定义
+    #scheduler-name: wmxQuartzScheduler # 计划程序的名称
+    startup-delay: 10s #初始化完成后启动计划程序的延迟时间，默认为 0 秒
+    wait-for-jobs-to-complete-on-shutdown: false # 关闭时是否等待正在运行的作业完成
+
+    #对于 Quartz 自带的配置，即可以使用 quartz 自己的 quartz.properties 配置文件进行配置，也可以直接配置在 properties 属性下，它是一个 map
+    #quartz 完整配置：https://wangmaoxiong.blog.csdn.net/article/details/105057405#quartz.properties%20%E4%B8%8E%20QuartzProperties%20%E9%85%8D%E7%BD%AE%E9%80%89%E9%A1%B9
+    properties:
+      org:
+        quartz:
+          jobStore:
+            #如果不需要将调度命令（例如添加和删除triggers）绑定到其他事务，那么可以通过使用 JobStoreTX 管理事务
+            class: org.quartz.impl.jdbcjobstore.JobStoreTX
+            #设置数据库驱动代理，StdJDBCDelegate 是一个使用 JDBC 代码来执行其工作的代理. 其他代理可以在"org.quartz.impl.jdbcjobstore“包或其子包中找到
+            driverDelegateClass: org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+            #通知 JobStore 使用的表前缀
+            tablePrefix: QRTZ_
+
+            misfireThreshold: 60000
+            #是否加入集群
+            isClustered: true
+            ##容许的最大作业延长时间
+            clusterCheckinInterval: 20000
+          threadPool:
+            class: org.quartz.simpl.SimpleThreadPool  #quartz 使用的线程池类型，org.quartz.spi.ThreadPool
+            threadCount: 15   #线程池中的线程总个数，表示最多可以同时执行的个任务/作业个数
+            threadPriority: 5   #线程优先级
+            threadsInheritContextClassLoaderOfInitializingThread: true #线程继承初始化线程的上下文类加载器
+
+          scheduler:
+            #quartz 调度器实例名称，相当于微服务架构中的微服务名称，instanceId 相当于微服务多实例时的节点 id
+            #如果指定了 spring.quartz.scheduler-name 属性，则优先以它为准，此时 instanceName 不会生效.
+            instanceName: wmxClusteredScheduler
+            #实例id设置为自动获取，集群下的所有调度器实例id 必须为唯一.
+            instanceId: AUTO
+
+---
+spring:
+  profiles: h2DB
+  #h2 数据源配置
+  datasource:
+    username: sa
+    password: 123456
+    #持久化到本地磁盘，使用混合模式，默认情况下，H2 只运行一个进程访问，true 表示可以多个进程可以访问同一个数据库
+    url: jdbc:h2:~/test;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+
+  #H2 Web 控制台配置，启用 h2 Console 控制台，并设置访问路径
+  h2:
+    console:
+      enabled: true
+      path: /h2_console
+
+---
+spring:
+  profiles: mysqlDB
+  datasource:
+    username: root
+    password: root
+    # spring boot 2.1.5 搭配 mysql 驱动 8.0.16，高版本 mysql 驱动的 driver-class-name 值要带 cj;url 值要带时区 serverTimezone
+    url: jdbc:mysql://127.0.0.1:3306/test?characterEncoding=UTF-8&serverTimezone=UTC
+    driver-class-name: com.mysql.cj.jdbc.Driver
