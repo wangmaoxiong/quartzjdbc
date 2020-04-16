@@ -1,3 +1,6 @@
+server:
+  port: 8080
+
 spring:
   profiles:
     active: mysqlDB  #切换指定的数据源.
