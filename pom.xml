@@ -72,7 +72,7 @@
             <version>3.9</version>
         </dependency>
 
-        <!--设置热部署-->
+        <!--设置热部署。IDEA 启动单个应用的多实例测试时，把热部署关掉-->
         <!--<dependency>-->
             <!--<groupId>org.springframework.boot</groupId>-->
             <!--<artifactId>spring-boot-devtools</artifactId>-->
