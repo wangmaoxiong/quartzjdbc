@@ -21,6 +21,7 @@ spring:
         quartz:
           jobStore:
             #如果不需要将调度命令（例如添加和删除triggers）绑定到其他事务，那么可以通过使用 JobStoreTX 管理事务
+            #class: org.springframework.scheduling.quartz.LocalDataSourceJobStore  # springboot>2.5.6后使用这个 不然会报DataSource name not set异常
             class: org.quartz.impl.jdbcjobstore.JobStoreTX
             #设置数据库驱动代理，StdJDBCDelegate 是一个使用 JDBC 代码来执行其工作的代理. 其他代理可以在"org.quartz.impl.jdbcjobstore“包或其子包中找到
             driverDelegateClass: org.quartz.impl.jdbcjobstore.StdJDBCDelegate
